@@ -1,0 +1,9 @@
+name: monocle3
+channels:
+  - bioconda
+  - conda-forge 
+  - defaults
+  - ebi-gene-expression-group 
+dependencies:
+  - openblas 
+  - r-monocle3
