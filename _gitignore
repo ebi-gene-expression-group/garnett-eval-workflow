@@ -1,5 +1,0 @@
-work/
-.nextflow*
-.DS_Store 
-data/output/
-*.drawio

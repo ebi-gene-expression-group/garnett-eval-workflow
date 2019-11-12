@@ -1,11 +1,8 @@
-name: garnett-cli
-channels:
-  - bioconda
-  - conda-forge 
-  - defaults
-  - ebi-gene-expression-group 
+name: garnett-cli 
 dependencies:
-  - openblas
-  - bioconductor-org.hs.eg.db
-  - bioconductor-org.Mm.eg.db 
-  - garnett-cli
+  - garnett-cli=v0.0.1
+  - r-garnett=0.2.8
+  - r-monocle3
+  - bioconductor-singlecellexperiment=1.6.0
+  - bioconductor-org.Hs.eg.db
+  - bioconductor-org.Mm.eg.db

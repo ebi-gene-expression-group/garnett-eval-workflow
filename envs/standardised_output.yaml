@@ -1,0 +1,4 @@
+name: standardised_outputs  
+dependencies: 
+  - r-optparse
+  - r-workflowscriptscommon
