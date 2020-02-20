@@ -58,6 +58,6 @@ if(opt$cell_id_field != "null"){
     cell_id = row.names(table)
 }
 
-predicted_annotation = as.character(table[, opt$predicted_cell_type_field])
-output_table = data.frame(cbind(cell_id, predicted_annotation))
-write.table(output_table, file = opt$output_file_path, sep="\t")
+predicted_label = as.character(table[, opt$predicted_cell_type_field])
+output_table = data.frame(cbind(cell_id, predicted_label))
+write.csv(output_table, file = opt$output_file_path, sep="\t")

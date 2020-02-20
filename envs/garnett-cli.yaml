@@ -1,8 +1,8 @@
 name: garnett-cli 
 dependencies:
-  - garnett-cli=v0.0.1
+  - garnett-cli=0.0.3
   - r-garnett=0.2.8
-  - r-monocle3
   - bioconductor-singlecellexperiment=1.6.0
+  - r-glmnet=2.0_18
   - bioconductor-org.Hs.eg.db
   - bioconductor-org.Mm.eg.db
