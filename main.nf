@@ -1,39 +1,60 @@
 #!/usr/bin/env nextflow 
 
-// build query and reference CDS object 
+// build reference CDS object 
 REF_10X_DIR = Channel.fromPath(params.ref_10x_dir)
-QUERY_10X_DIR = Channel.fromPath(params.query_10x_dir)
-process build_CDS_objects{
-    conda "${baseDir}/envs/garnett-cli.yaml"
+process build_ref_CDS_object{
+    conda "${baseDir}/envs/monocle3-cli.yaml"
 
-    errorStrategy { task.attempt < 4  ? 'retry' : 'ignore' }   
-    maxRetries 4
+    errorStrategy { task.exitStatus == 130 || task.exitStatus == 137  ? 'retry' : 'finish' }   
+    maxRetries 10
     memory { 16.GB * task.attempt }
 
     input: 
         file(ref_10x_dir) from REF_10X_DIR
-        file(query_10x_dir) from QUERY_10X_DIR
 
     output:
         file("ref_cds.rds") into REF_CDS
+    
+    """
+    monocle3 create ref_cds.rds\
+                --expression-matrix ${ref_10x_dir}/matrix.mtx
+                --cell-metadata ${ref_10x_dir}/barcodes.tsv
+                --gene-annotation ${ref_10x_dir}/genes.tsv
+    """
+}
+REF_CDS = REF_CDS.first()
+
+// build query CDS object
+QUERY_10X_DIR = Channel.fromPath(params.query_10x_dir)
+process build_query_CDS_object{
+    conda "${baseDir}/envs/monocle3-cli.yaml"
+
+    errorStrategy { task.exitStatus == 130 || task.exitStatus == 137  ? 'retry' : 'finish' }   
+    maxRetries 10
+    memory { 16.GB * task.attempt }
+
+    input: 
+        file(query_10x_dir) from QUERY_10X_DIR
+
+    output:
         file("query_cds.rds") into QUERY_CDS
     
     """
-    parse_expr_data.R\
-            --ref-10x-dir ${ref_10x_dir}\
-            --query-10x-dir ${query_10x_dir}\
-            --ref-output-cds ref_cds.rds\
-            --query-output-cds query_cds.rds
+    monocle3 create query_cds.rds\
+                --expression-matrix ${query_10x_dir}/'matrix.mtx'
+                --cell-metadata ${query_10x_dir}/'barcodes.tsv'
+                --gene-annotation ${query_10x_dir}/'genes.tsv'
     """
 }
+QUERY_CDS = QUERY_CDS.first()
 
 // transform markers from SCXA format into Garnett
 SCXA_MARKER_GENES = Channel.fromPath(params.marker_genes)
 process transform_markers{
     conda "${baseDir}/envs/garnett-cli.yaml"
 
-    errorStrategy { task.attempt < 4  ? 'retry' : 'ignore' }   
-    maxRetries 4
+    errorStrategy { task.exitStatus == 130 || task.exitStatus == 137  ? 'retry' : 'finish' }   
+    maxRetries 10
     memory { 16.GB * task.attempt }
 
     input:
@@ -45,7 +66,7 @@ process transform_markers{
 
     """
     transform_marker_file.R\
-            --input-marker-file ${cxa_markers}\
+            --input-marker-file ${scxa_markers}\
             --marker-list markers_list.rds\
             --garnett-marker-file garnett_markers.txt
     """
@@ -53,14 +74,12 @@ process transform_markers{
 
 
 // check supplied markers 
-//value channels for re-use
-REF_CDS = REF_CDS.first()
 process check_markers{ 
     publishDir "data/output_dir", mode: 'copy'
     conda "${baseDir}/envs/garnett-cli.yaml" 
     
-    errorStrategy { task.attempt < 4  ? 'retry' : 'ignore' }   
-    maxRetries 4
+    errorStrategy { task.exitStatus == 130 || task.exitStatus == 137  ? 'retry' : 'finish' }   
+    maxRetries 10
     memory { 16.GB * task.attempt }
 
     input:
@@ -69,7 +88,7 @@ process check_markers{
 
     output:
         file("marker_genes_checked.txt") into CHECKED_MARKER_GENES
-        file("marker_plot.png") into MARKER_PLOT
+        
 
     """
     garnett_check_markers.R\
@@ -78,17 +97,16 @@ process check_markers{
             -d ${params.database}\
             --cds-gene-id-type ${params.ref_cds_gene_id_type}\
             --marker-output-path marker_genes_checked.txt\
-            --plot-output-path marker_plot.png
-
     """
 }
+
 
 process update_markers {
 
     conda "${baseDir}/envs/garnett-cli.yaml" 
     
-    errorStrategy { task.attempt < 4  ? 'retry' : 'ignore' }   
-    maxRetries 4
+    errorStrategy { task.exitStatus == 130 || task.exitStatus == 137  ? 'retry' : 'finish' }   
+    maxRetries 10
     memory { 16.GB * task.attempt }
 
     input:
@@ -106,13 +124,12 @@ process update_markers {
     """
 
 }
-GARNETT_MARKERS_UPD = GARNETT_MARKERS_UPD.first()
 
 process train_classifier{
     conda "${baseDir}/envs/garnett-cli.yaml" 
 
-    errorStrategy { task.attempt < 4  ? 'retry' : 'ignore' }   
-    maxRetries 4
+    errorStrategy { task.exitStatus == 130 || task.exitStatus == 137  ? 'retry' : 'finish' }   
+    maxRetries 10
     memory { 16.GB * task.attempt }
 
     input:
@@ -135,39 +152,13 @@ process train_classifier{
     """
 }
 
-//get feature genes 
-process get_feature_genes{
-
-    publishDir "${baseDir}/data/output_dir", mode: 'copy'
-    conda "${baseDir}/envs/garnett-cli.yaml"
-
-    // resource handling 
-    errorStrategy { task.attempt < 4  ? 'retry' : 'ignore' }   
-    maxRetries 4
-    memory { 16.GB * task.attempt }
-
-    input:
-        file(classifier) from TRAINED_CLASSIFIER
-
-    output:
-        file("feature_genes.txt") into FEATURE_GENES 
-
-    """
-    garnett_get_feature_genes.R\
-            --classifier-object ${classifier}\
-            --database ${params.database}\
-            --output-path feature_genes.txt
-    """
-
-}
-
 // classify cells 
 process classify_cells{
     publishDir "${baseDir}/data/output_dir", mode: 'copy'
     conda "${baseDir}/envs/garnett-cli.yaml"
 
-    errorStrategy { task.attempt < 4  ? 'retry' : 'ignore' }   
-    maxRetries 4
+    errorStrategy { task.exitStatus == 130 || task.exitStatus == 137  ? 'retry' : 'finish' }   
+    maxRetries 10
     memory { 16.GB * task.attempt }
 
     input:
@@ -188,38 +179,21 @@ process classify_cells{
     """
 }
 
-// get cell metadata for further processing 
-process get_metadata{
-    publishDir "${baseDir}/data/output_dir", mode: 'copy'
-    conda "${baseDir}/envs/garnett-cli.yaml"
-
-    input:
-        file(cds_classified) from CLASSIFIED_CELL_TYPES
-
-    output:
-        file("garnett_metadata.tsv") into CDS_METADATA
-
-    """
-    get_metadata.R ${garnett_cds} garnett_metadata.tsv 
-    """
-} 
-
 //obtain output in standard format 
 process get_output{
     publishDir "${params.results_dir}", mode: 'copy'
-    conda "${baseDir}/envs/standardised_output.yaml"
+    conda "${baseDir}/envs/garnett-cli"
 
     input:
-        file(garnett_meta) from CDS_METADATA
+        file(classified_cells) from CLASSIFIED_CELL_TYPES
 
     output:
         file("garnett_output.txt") into ANNOTATION_OUTPUT
 
     """
-    get_output.R\
-        --input-file ${garnett_meta}\
-        --cell-id-field ${params.cell_id_field}\
-        --predicted-cell-type-field ${params.predicted_cell_type_field}\
-        --output-file-path garnett_output.txt
+    garnett_get_std_output.R\
+            --input-object ${classified_cells}
+            --predicted-cell-type-field ${params.predicted_cell_type_field}
+            --output-file-path garnett_output.txt
     """
 }
