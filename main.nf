@@ -17,9 +17,9 @@ process build_ref_CDS_object{
     
     """
     monocle3 create ref_cds.rds\
-                --expression-matrix ${ref_10x_dir}/matrix.mtx
-                --cell-metadata ${ref_10x_dir}/barcodes.tsv
-                --gene-annotation ${ref_10x_dir}/genes.tsv
+                --expression-matrix ${ref_10x_dir}/matrix.mtx\
+                --cell-metadata ${ref_10x_dir}/barcodes.tsv\
+                --gene-annotation ${ref_10x_dir}/genes.tsv\
     """
 }
 REF_CDS = REF_CDS.first()
@@ -41,9 +41,9 @@ process build_query_CDS_object{
     
     """
     monocle3 create query_cds.rds\
-                --expression-matrix ${query_10x_dir}/'matrix.mtx'
-                --cell-metadata ${query_10x_dir}/'barcodes.tsv'
-                --gene-annotation ${query_10x_dir}/'genes.tsv'
+                --expression-matrix ${query_10x_dir}/matrix.mtx\
+                --cell-metadata ${query_10x_dir}/barcodes.tsv\
+                --gene-annotation ${query_10x_dir}/genes.tsv\
     """
 }
 QUERY_CDS = QUERY_CDS.first()
@@ -67,6 +67,9 @@ process transform_markers{
     """
     transform_marker_file.R\
             --input-marker-file ${scxa_markers}\
+            --pval-col ${params.pval_col}\
+            --gene-names ${params.gene_names}\
+            --groups-col ${params.groups_col}\
             --marker-list markers_list.rds\
             --garnett-marker-file garnett_markers.txt
     """
@@ -94,6 +97,7 @@ process check_markers{
     garnett_check_markers.R\
             --cds-object ${ref_cds}\
             --marker-file-path ${marker_genes}\
+            --marker-file-gene-id-type ${params.marker_gene_id_type}\
             -d ${params.database}\
             --cds-gene-id-type ${params.ref_cds_gene_id_type}\
             --marker-output-path marker_genes_checked.txt\
@@ -182,7 +186,7 @@ process classify_cells{
 //obtain output in standard format 
 process get_output{
     publishDir "${params.results_dir}", mode: 'copy'
-    conda "${baseDir}/envs/garnett-cli"
+    conda "${baseDir}/envs/garnett-cli.yaml"
 
     input:
         file(classified_cells) from CLASSIFIED_CELL_TYPES
@@ -192,8 +196,8 @@ process get_output{
 
     """
     garnett_get_std_output.R\
-            --input-object ${classified_cells}
-            --predicted-cell-type-field ${params.predicted_cell_type_field}
-            --output-file-path garnett_output.txt
+            --input-object ${classified_cells}\
+            --predicted-cell-type-field ${params.predicted_cell_type_field}\
+            --output-file-path garnett_output.txt\
     """
 }
