@@ -1,6 +1,6 @@
 name: monocle3-cli  
 dependencies: 
-  - monocle3-cli=0.0.6
+  - monocle3-cli=0.0.7
   - r-workflowscriptscommon
   - r-optparse
   
