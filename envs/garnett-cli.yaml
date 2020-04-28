@@ -1,6 +1,6 @@
 name: garnett-cli 
 dependencies:
-  - garnett-cli=0.0.3
+  - garnett-cli=0.0.5
   - r-garnett=0.2.8
   - bioconductor-singlecellexperiment=1.6.0
   - bioconductor-org.Hs.eg.db

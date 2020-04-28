@@ -198,6 +198,7 @@ process get_output{
     garnett_get_std_output.R\
             --input-object ${classified_cells}\
             --predicted-cell-type-field ${params.predicted_cell_type_field}\
+	    --classifier "garnett_output.rds"\
             --output-file-path garnett_output.txt\
     """
 }
