@@ -49,7 +49,7 @@ process build_query_CDS_object{
 QUERY_CDS = QUERY_CDS.first()
 
 // transform markers from SCXA format into Garnett
-SCXA_MARKER_GENES = Channel.fromPath(params.marker_genes)
+SCXA_MARKER_GENES = Channel.fromPath(params.marker_genes).first()
 process transform_markers{
     conda "${baseDir}/envs/garnett-cli.yaml"
 
@@ -190,6 +190,7 @@ process get_output{
 
     input:
         file(classified_cells) from CLASSIFIED_CELL_TYPES
+        file(classifier) from TRAINED_CLASSIFIER
 
     output:
         file("garnett_output.txt") into ANNOTATION_OUTPUT
@@ -198,7 +199,7 @@ process get_output{
     garnett_get_std_output.R\
             --input-object ${classified_cells}\
             --predicted-cell-type-field ${params.predicted_cell_type_field}\
-	    --classifier "garnett_output.rds"\
+	    --classifier ${classifier}\
             --output-file-path garnett_output.txt\
     """
 }
